@@ -552,8 +552,8 @@ fn get_newline_reserved_token<'a>(
             let (token, input) = input.split_at(input_end_pos);
             let kind = if (token == "AND" || token == "OR")
                 && last_reserved_token.is_some()
-                && last_reserved_token.as_ref().unwrap().value == "BETWEEN"
-                && last_reserved_token.as_ref().unwrap().value == "CREATE"
+                && (last_reserved_token.as_ref().unwrap().value == "BETWEEN"
+                    || last_reserved_token.as_ref().unwrap().value == "CREATE")
             {
                 // If the "AND" is part of a "BETWEEN" clause, we want to handle it as one clause by not adding a new line.
                 TokenKind::Reserved
