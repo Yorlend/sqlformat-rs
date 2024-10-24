@@ -1283,10 +1283,11 @@ mod tests {
             SELECT
               foo,
               bar,
-              CASE
-                baz
-                WHEN 'one' THEN 1
-                WHEN 'two' THEN 2
+              CASE baz
+                WHEN 'one'
+                  THEN 1
+                WHEN 'two'
+                  THEN 2
                 ELSE 3
               END
             FROM
@@ -1472,10 +1473,10 @@ mod tests {
             "
             CREATE FUNCTION abc() AS
             $$
-            SELECT
-              *
-            FROM
-              table
+                SELECT
+                *
+                FROM
+                table
             $$
             LANGUAGE plpgsql;"
         );
@@ -1485,20 +1486,21 @@ mod tests {
 
     #[test]
     fn it_formats_pgplsql() {
-        let input = "CREATE FUNCTION abc() AS $$ DECLARE a int := 1; b int := 2; BEGIN SELECT * FROM table $$ LANGUAGE plpgsql;";
+        let input = "CREATE FUNCTION abc() AS $$ DECLARE a int := 1; b int := 2; BEGIN SELECT * FROM table END; $$ LANGUAGE plpgsql;";
         let options = FormatOptions::default();
         let expected = indoc!(
             "
             CREATE FUNCTION abc() AS
             $$
             DECLARE
-            a int := 1;
-            b int := 2;
+                a int := 1;
+                b int := 2;
             BEGIN
-            SELECT
-              *
-            FROM
-              table
+                SELECT
+                *
+                FROM
+                table
+            END;
             $$
             LANGUAGE plpgsql;"
         );
@@ -1682,14 +1684,14 @@ mod tests {
     #[test]
     fn it_recognizes_fmt_off() {
         let input = indoc!(
-            "SELECT              *     FROM   sometable        
+            "SELECT              *     FROM   sometable
             WHERE
             -- comment test here
                  -- fmt: off
                 first_key.second_key = 1
                                 -- json:first_key.second_key = 1
                       -- fmt: on
-                AND 
+                AND
                    -- fm1t: off
                 first_key.second_key = 1
                                     --  json:first_key.second_key = 1

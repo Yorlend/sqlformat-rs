@@ -47,6 +47,8 @@ pub(crate) fn format(
 
         if token.kind == TokenKind::Whitespace {
             // ignore (we do our own whitespace formatting)
+        } else if token.kind == TokenKind::ReservedIndentLevel {
+            formatter.format_indent_level_reserved_word(token, &mut formatted_query);
         } else if token.kind == TokenKind::LineComment {
             formatter.format_line_comment(token, &mut formatted_query);
         } else if token.kind == TokenKind::BlockComment {
@@ -135,6 +137,14 @@ impl<'a> Formatter<'a> {
     fn format_block_comment(&self, token: &Token<'_>, query: &mut String) {
         self.add_new_line(query);
         query.push_str(&self.indent_comment(token.value));
+        self.add_new_line(query);
+    }
+
+    fn format_indent_level_reserved_word(&mut self, token: &Token<'_>, query: &mut String) {
+        self.indentation.decrease_block_level();
+        self.add_new_line(query);
+        self.indentation.increase_block_level();
+        query.push_str(&self.equalize_whitespace(&self.format_reserved_word(token.value)));
         self.add_new_line(query);
     }
 

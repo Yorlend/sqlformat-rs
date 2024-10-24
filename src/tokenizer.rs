@@ -60,6 +60,7 @@ pub(crate) enum TokenKind {
     Number,
     Placeholder,
     Word,
+    ReservedIndentLevel,
 }
 
 #[derive(Debug, Clone)]
@@ -449,6 +450,7 @@ fn get_reserved_word_token<'a>(
         get_newline_reserved_token(last_reserved_token),
         get_top_level_reserved_token_no_indent,
         get_plain_reserved_token,
+        get_reserved_indent_token(),
     ))(input)
 }
 
@@ -460,6 +462,34 @@ fn get_uc_words(input: &str, words: usize) -> String {
         .collect::<Vec<&str>>()
         .join(" ")
         .to_ascii_uppercase()
+}
+
+// TODO: REFACTOR
+fn get_reserved_indent_token<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Token<'a>> {
+    move |input: &'a str| {
+        let uc_input: String = get_uc_words(input, 3);
+        let result: IResult<&str, &str> = alt((
+            terminated(tag("BEGIN"), end_of_word),
+            terminated(tag("DECLARE"), end_of_word),
+        ))(&uc_input);
+        if let Ok((_, token)) = result {
+            let final_word = token.split(' ').last().unwrap();
+            let input_end_pos =
+                input.to_ascii_uppercase().find(final_word).unwrap() + final_word.len();
+            let (token, input) = input.split_at(input_end_pos);
+            let kind = TokenKind::ReservedIndentLevel;
+            Ok((
+                input,
+                Token {
+                    kind,
+                    value: token,
+                    key: None,
+                },
+            ))
+        } else {
+            Err(Err::Error(Error::new(input, ErrorKind::Alt)))
+        }
+    }
 }
 
 fn get_top_level_reserved_token<'a>(
@@ -489,6 +519,16 @@ fn get_top_level_reserved_token<'a>(
             terminated(tag("SET SCHEMA"), end_of_word),
             terminated(tag("SET"), end_of_word),
             alt((
+                terminated(tag("OUTER APPLY"), end_of_word),
+                terminated(tag("CROSS APPLY"), end_of_word),
+                terminated(tag("OUTER JOIN"), end_of_word),
+                terminated(tag("RIGHT JOIN"), end_of_word),
+                terminated(tag("RIGHT OUTER JOIN"), end_of_word),
+                terminated(tag("CROSS JOIN"), end_of_word),
+                terminated(tag("INNER JOIN"), end_of_word),
+                terminated(tag("JOIN"), end_of_word),
+                terminated(tag("LEFT JOIN"), end_of_word),
+                terminated(tag("LEFT OUTER JOIN"), end_of_word),
                 terminated(tag("UPDATE"), end_of_word),
                 terminated(tag("VALUES"), end_of_word),
                 terminated(tag("WHERE"), end_of_word),
@@ -529,19 +569,10 @@ fn get_newline_reserved_token<'a>(
     move |input: &'a str| {
         let uc_input = get_uc_words(input, 3);
         let result: IResult<&str, &str> = alt((
+            terminated(tag("ON"), end_of_word),
             terminated(tag("AND"), end_of_word),
-            terminated(tag("CROSS APPLY"), end_of_word),
-            terminated(tag("CROSS JOIN"), end_of_word),
             terminated(tag("ELSE"), end_of_word),
-            terminated(tag("INNER JOIN"), end_of_word),
-            terminated(tag("JOIN"), end_of_word),
-            terminated(tag("LEFT JOIN"), end_of_word),
-            terminated(tag("LEFT OUTER JOIN"), end_of_word),
             terminated(tag("OR"), end_of_word),
-            terminated(tag("OUTER APPLY"), end_of_word),
-            terminated(tag("OUTER JOIN"), end_of_word),
-            terminated(tag("RIGHT JOIN"), end_of_word),
-            terminated(tag("RIGHT OUTER JOIN"), end_of_word),
             terminated(tag("WHEN"), end_of_word),
             terminated(tag("XOR"), end_of_word),
         ))(&uc_input);
@@ -550,10 +581,12 @@ fn get_newline_reserved_token<'a>(
             let input_end_pos =
                 input.to_ascii_uppercase().find(final_word).unwrap() + final_word.len();
             let (token, input) = input.split_at(input_end_pos);
-            let kind = if (token == "AND" || token == "OR")
+            let kind = if (token == "AND" || token == "OR" || token == "ON")
                 && last_reserved_token.is_some()
                 && (last_reserved_token.as_ref().unwrap().value == "BETWEEN"
-                    || last_reserved_token.as_ref().unwrap().value == "CREATE")
+                    || last_reserved_token.as_ref().unwrap().value == "CREATE"
+                    || last_reserved_token.as_ref().unwrap().value == "EXECUTE"
+                    || last_reserved_token.as_ref().unwrap().value == "ALL")
             {
                 // If the "AND" is part of a "BETWEEN" clause, we want to handle it as one clause by not adding a new line.
                 TokenKind::Reserved
@@ -577,8 +610,6 @@ fn get_newline_reserved_token<'a>(
 fn get_top_level_reserved_token_no_indent(input: &str) -> IResult<&str, Token<'_>> {
     let uc_input = get_uc_words(input, 2);
     let result: IResult<&str, &str> = alt((
-        terminated(tag("BEGIN"), end_of_word),
-        terminated(tag("DECLARE"), end_of_word),
         terminated(tag("INTERSECT"), end_of_word),
         terminated(tag("INTERSECT ALL"), end_of_word),
         terminated(tag("MINUS"), end_of_word),
@@ -771,7 +802,6 @@ fn get_plain_reserved_one_token(input: &str) -> IResult<&str, Token<'_>> {
                                     terminated(tag("NULL"), end_of_word),
                                     terminated(tag("OFFSET"), end_of_word),
                                     alt((
-                                        terminated(tag("ON"), end_of_word),
                                         terminated(tag("ONLY"), end_of_word),
                                         terminated(tag("OPEN"), end_of_word),
                                         terminated(tag("OPTIMIZE"), end_of_word),
