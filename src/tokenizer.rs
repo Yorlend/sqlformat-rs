@@ -575,6 +575,11 @@ fn get_newline_reserved_token<'a>(
             terminated(tag("OR"), end_of_word),
             terminated(tag("WHEN"), end_of_word),
             terminated(tag("XOR"), end_of_word),
+            terminated(tag("LANGUAGE"), end_of_word),
+            terminated(tag("$$"), end_of_word),
+            terminated(tag("SECURITY"), end_of_word),
+            terminated(tag("VOLATILE"), end_of_word),
+            terminated(tag("STRICT"), end_of_word),
         ))(&uc_input);
         if let Ok((_, token)) = result {
             let final_word = token.split(' ').last().unwrap();
@@ -615,7 +620,6 @@ fn get_top_level_reserved_token_no_indent(input: &str) -> IResult<&str, Token<'_
         terminated(tag("MINUS"), end_of_word),
         terminated(tag("UNION"), end_of_word),
         terminated(tag("UNION ALL"), end_of_word),
-        terminated(tag("$$"), end_of_word),
     ))(&uc_input);
     if let Ok((_, token)) = result {
         let final_word = token.split(' ').last().unwrap();
@@ -648,8 +652,8 @@ fn get_plain_reserved_one_token(input: &str) -> IResult<&str, Token<'_>> {
         terminated(tag("ALTER"), end_of_word),
         terminated(tag("ANALYSE"), end_of_word),
         terminated(tag("ANALYZE"), end_of_word),
-        terminated(tag("AS"), end_of_word),
         terminated(tag("ASC"), end_of_word),
+        terminated(tag("AS"), end_of_word),
         terminated(tag("AUTOCOMMIT"), end_of_word),
         terminated(tag("AUTO_INCREMENT"), end_of_word),
         terminated(tag("BACKUP"), end_of_word),
@@ -851,7 +855,6 @@ fn get_plain_reserved_one_token(input: &str) -> IResult<&str, Token<'_>> {
                                                 terminated(tag("ROWS"), end_of_word),
                                                 terminated(tag("ROW_FORMAT"), end_of_word),
                                                 terminated(tag("SECOND"), end_of_word),
-                                                terminated(tag("SECURITY"), end_of_word),
                                                 terminated(tag("SEPARATOR"), end_of_word),
                                                 terminated(tag("SERIALIZABLE"), end_of_word),
                                                 terminated(tag("SESSION"), end_of_word),
